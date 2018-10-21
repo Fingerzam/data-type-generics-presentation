@@ -68,25 +68,25 @@ data Example = Example1 String String
 
 ::: incremental
 
+- Sum
+  ```haskell
+  data Sum a b = Inl a | Inr b
+  ```
 - Constructors
   ```haskell
   newtype Constructor (name :: Symbol) a = Constructor a
   ```
-- Products
+- No Arguments
   ```haskell
-  data Product a b = Product a b
-  ```
-- Sum
-  ```haskell
-  data Sum a b = Inl a | Inr b
+  data NoArguments = NoArguments
   ```
 - Argument
   ```haskell
   newtype Argument a = Argument a
   ```
-- No Arguments
+- Products
   ```haskell
-  data NoArguments = NoArguments
+  data Product a b = Product a b
   ```
 - Empty types
   ```haskell
@@ -274,6 +274,7 @@ Sum      (Constructor "Name1"          NoArguments)
     - `NoArguments`
     - a single `Argument`
     - `Product` of `Argument`s
+- `NoConstructors`
 
 # How to Write Such a Function?
 
@@ -289,86 +290,86 @@ Sum      (Constructor "Name1"          NoArguments)
 # Eq
 
 ```haskell
-class GenerikEq a where
-  generikEq' :: a -> a -> Boolean
+class GenericEq a where
+  genericEq' :: a -> a -> Boolean
 ```
 . . .
 ```haskell
-instance generikEqConstructor
-  :: GenerikEq args
-  => GenerikEq (Constructor name args) where
-  generikEq' (Constructor x) (Constructor y)
-    = generikEq' x y
+instance genericEqNoArguments
+  :: GenericEq NoArguments where
+  genericEq' NoArguments NoArguments = true
 ```
 . . .
 ```haskell
-instance generikEqNoArguments
-  :: GenerikEq NoArguments where
-  generikEq' NoArguments NoArguments = true
+instance genericEqConstructor
+  :: GenericEq args
+  => GenericEq (Constructor name args) where
+  genericEq' (Constructor x) (Constructor y)
+    = genericEq' x y
 ```
 . . .
 ```haskell
-> generikEq' (from Simple) (from Simple)
+> genericEq' (from Simple) (from Simple)
 true
 ```
 
 # Cannot Handle Sums yet
 
 ```haskell
-> generikEq' (from Negative) (from Negative)
+> genericEq' (from Negative) (from Negative)
   No type class instance was found for
-    Main.GenerikEq (Sum (Constructor "Positive" NoArguments) 
+    Main.GenericEq (Sum (Constructor "Positive" NoArguments) 
                         (Constructor "Negative" NoArguments))
 ```
 
 # Simple Sums
 
 ```haskell
-instance generikEqSum
-  :: (GenerikEq a, GenerikEq b)
-  => GenerikEq (Sum a b) where
-  generikEq' (Inl x) (Inl y) = generikEq' x y
-  generikEq' (Inr x) (Inr y) = generikEq' x y
-  generikEq' _       _       = false
+instance genericEqSum
+  :: (GenericEq a, GenericEq b)
+  => GenericEq (Sum a b) where
+  genericEq' (Inl x) (Inl y) = genericEq' x y
+  genericEq' (Inr x) (Inr y) = genericEq' x y
+  genericEq' _       _       = false
 ```
 . . .
 ```haskell
-> generikEq' (from Positive) (from Positive)
+> genericEq' (from Positive) (from Positive)
 true
 ```
 . . .
 ```haskell
-> generikEq' (from Positive) (from Negative)
+> genericEq' (from Positive) (from Negative)
 false
 ```
 
 # Argument
 
 ```haskell
-> generikEq' (from (UserName "KEKKONEN_3000")) 
+> genericEq' (from (UserName "KEKKONEN_3000")) 
              (from (UserName "KEKKONEN_3000"))
   No type class instance was found for
                                     
-    Main.GenerikEq (Argument String)
+    Main.GenericEq (Argument String)
 ```
 
 # Argument
 
 ```haskell
-instance generikEqArgument
+instance genericEqArgument
   :: Eq arg
-  => GenerikEq (Argument arg) where
-  generikEq' (Argument x) (Argument y) = x == y
+  => GenericEq (Argument arg) where
+  genericEq' (Argument x) (Argument y) = x == y
 ```
 . . .
 ```haskell
-> generikEq' (from (UserName "KEKKONEN_3000")) 
+> genericEq' (from (UserName "KEKKONEN_3000")) 
              (from (UserName "KEKKONEN_3000"))
 true
 ```
 . . .
 ```haskell
-> generikEq' (from (UserName "Alice")) 
+> genericEq' (from (UserName "Alice")) 
              (from (UserName "Bob"))
 false
 ```
@@ -376,135 +377,169 @@ false
 # Product of Arguments
 
 ```haskell
-> generikEq' (from (Example2 "Alice" 1)) 
+> genericEq' (from (Example2 "Alice" 1)) 
              (from (Example2 "Bob" 1))
   No type class instance was found for
-    Main.GenerikEq (Product (Argument String) 
+    Main.GenericEq (Product (Argument String) 
                             (Argument String))
 ```
 
 # Product of Arguments
 
 ```haskell
-instance generikEqProduct
-  :: (GenerikEq a, GenerikEq b)
-  => GenerikEq (Product a b) where
+instance genericEqProduct
+  :: (GenericEq a, GenericEq b)
+  => GenericEq (Product a b) where
 ```
 . . .
 ```haskell
-  generikEq' (Product x1 y1) (Product x2 y2)
-    = generikEq' x1 x2 && generikEq' y1 y2
+  genericEq' (Product x1 y1) (Product x2 y2)
+    = genericEq' x1 x2 && genericEq' y1 y2
 ```
 . . .
 ```haskell
-> generikEq' (from (Example2 "Alice" 1)) 
+> genericEq' (from (Example2 "Alice" 1)) 
              (from (Example2 "Bob" 1))
 false
 ```
 . . .
 ```haskell
-> generikEq' (from (Example2 "Alice" 1)) 
+> genericEq' (from (Example2 "Alice" 1)) 
               (from (Example2 "Alice" 1))
 true
 ```
 
 # Stare in to the Void
 
+- Should also cover empty types
+
 ```haskell
-instance generikEqNoConstructors
-  :: GenerikEq NoConstructors where
-  generikEq' _ _ = true
+instance genericEqNoConstructors
+  :: GenericEq NoConstructors where
+  genericEq' _ _ = true
+```
+
+# Helper function
+
+- To actually use this, write a helper function to do the generic conversion
+
+```haskell
+genericEq :: forall a rep
+           . Generic a rep 
+          => GenericEq rep 
+          => a -> a -> Boolean
+genericEq x y = genericEq' (from x) (from y)
+```
+
+# User code
+
+- Now with all of this done, all that a user needs to do is write an instance that calls `genericEq`
+
+```haskell
+instance eqExample :: Eq Example where
+  eq = genericEq
+```
+. . .
+```haskell
+> (Example2 "KEKKONEN_3000" 10) == (Example2 "KEKKONEN_3000" 10)
+true
+```
+. . .
+```haskell
+> (Example2 "KEKKONEN_3000" 10) == (Example1 "KEKKONEN_3000" "10")
+false
+
 ```
 
 # Show must go on
 
 ```haskell
-class GenerikShow a where
-  generikShow' :: a -> String
+class GenericShow a where
+  genericShow' :: a -> String
 ```
 . . .
 ```haskell
-instance generikShowConstructorNoArguments
+instance genericShowConstructorNoArguments
   :: IsSymbol name
-  => GenerikShow (Constructor name NoArguments) where
+  => GenericShow (Constructor name NoArguments) where
 ```
 . . .
 ```haskell
-  generikShow' (Constructor NoArguments)
+  genericShow' (Constructor NoArguments)
     = let constructorNameProxy = SProxy :: SProxy name
           constructorName = reflectSymbol constructorNameProxy
       in constructorName
 ```
 . . .
 ```haskell
-> log $ generikShow' $ from Simple
+> log $ genericShow' $ from Simple
 Simple
 ```
 
 # Sums
 
 ```haskell
-> log $ generikShow' $ from Positive
+> log $ genericShow' $ from Positive
   No type class instance was found for
-    Main.GenerikShow (Sum (Constructor "Positive" NoArguments) 
+    Main.GenericShow (Sum (Constructor "Positive" NoArguments) 
                           (Constructor "Negative" NoArguments))
 ```
 . . .
 ```haskell
-instance generikShowSum
-  :: (GenerikShow a, GenerikShow b)
-  => GenerikShow (Sum a b) where
+instance genericShowSum
+  :: (GenericShow a, GenericShow b)
+  => GenericShow (Sum a b) where
 ```
 . . .
 ```haskell
-  generikShow' (Inl x) = generikShow' x
-  generikShow' (Inr y) = generikShow' y
+  genericShow' (Inl x) = genericShow' x
+  genericShow' (Inr y) = genericShow' y
 ```
 . . .
 ```haskell
-> log $ generikShow' $ from Positive
+> log $ genericShow' $ from Positive
 Positive
 ```
 
 # Single Argument
 
 ```haskell
-> log $ generikShow' $ from (Just "Tampere")
+> log $ genericShow' $ from (Just "Tampere")
   No type class instance was found for
-    Main.GenerikShow (Constructor "Just" (Argument String))
+    Main.GenericShow (Constructor "Just" (Argument String))
 ```
 . . .
 ```haskell
-instance generikShowConstructorArgument
+instance genericShowConstructorArgument
   :: (Show arg, IsSymbol name)
-  => GenerikShow (Constructor name (Argument arg)) where
+  => GenericShow (Constructor name (Argument arg)) where
 ```
 . . .
 ```haskell
-  generikShow' (Constructor (Argument arg))
+  genericShow' (Constructor (Argument arg))
     = let constructorName = reflectSymbol (SProxy :: SProxy name)
           argStr = show arg
       in "(" <> constructorName <> " " <> argStr <> ")"
 ```
 . . .
 ```haskell
-> log $ generikShow' $ from (Just "Tampere")
+> log $ genericShow' $ from (Just "Tampere")
 (Just "Tampere")
 ```
 
 # Multiple Arguments
 
 ```haskell
-instance generikShowConstructorProduct
+instance genericShowConstructorProduct
   :: (IsSymbol name, ??? a, ??? b)
-  => GenerikShow (Constructor name (Product a b))
+  => GenericShow (Constructor name (Product a b))
 ```
 
 # Helper Function to the Rescue
 
 ```haskell
-class GenerikShowArgs a where
-  generikShowArgs :: a -> Array String
+class GenericShowArgs a where
+  genericShowArgs :: a -> Array String
 ```
 . . .
 
@@ -512,66 +547,66 @@ class GenerikShowArgs a where
 
 . . .
 ```haskell
-instance generikShowArgsArgument
+instance genericShowArgsArgument
   :: Show a
-  => GenerikShowArgs (Argument a) where
+  => GenericShowArgs (Argument a) where
 ```
 . . .
 ```haskell
-  generikShowArgs (Argument x) = [show x]
+  genericShowArgs (Argument x) = [show x]
 ```
 . . .
 ```haskell
-instance generikShowArgsProduct
-  :: (GenerikShowArgs a, GenerikShowArgs b)
-  => GenerikShowArgs (Product a b) where
+instance genericShowArgsProduct
+  :: (GenericShowArgs a, GenericShowArgs b)
+  => GenericShowArgs (Product a b) where
 ```
 . . .
 ```haskell
-  generikShowArgs (Product x y)
-    = generikShowArgs x <> generikShowArgs y
+  genericShowArgs (Product x y)
+    = genericShowArgs x <> genericShowArgs y
 ```
 
 # Multiple Arguments
 
 ```haskell
-instance generikShowConstructorProduct
-  :: (IsSymbol name, GenerikShowArgs (Product a b))
-  => GenerikShow (Constructor name (Product a b)) where
+instance genericShowConstructorProduct
+  :: (IsSymbol name, GenericShowArgs (Product a b))
+  => GenericShow (Constructor name (Product a b)) where
 ```
 . . .
 ```haskell
-  generikShow' (Constructor prod)
+  genericShow' (Constructor prod)
     = let constructorName = reflectSymbol (SProxy :: SProxy name)
-          args = generikShowArgs prod
+          args = genericShowArgs prod
           argStr = intercalate " " args
       in "(" <> constructorName <> " " <> argStr <> ")"
 ```
 . . .
 ```haskell
-> log $ generikShow' $ from (Example2 "hep" 2)
+> log $ genericShow' $ from (Example2 "hep" 2)
 (Example2 "hep" 2)
 ```
 
 # Simplified
 
 ```haskell
-instance generikShowArgsNoArguments
-  :: GenerikShowArgs NoArguments where
-  generikShowArgs NoArguments = []
+instance genericShowArgsNoArguments
+  :: GenericShowArgs NoArguments where
+  genericShowArgs NoArguments = []
 ```
 . . .
 ```haskell
-instance generikShowConstructor
-  :: (GenerikShowArgs params, IsSymbol name)
-  => GenerikShow (Constructor name params) where
+instance genericShowConstructor
+  :: (GenericShowArgs params, IsSymbol name)
+  => GenericShow (Constructor name params) where
 ```
 . . .
 ```haskell
-  generikShow' (Constructor args) =
+  genericShow' (Constructor args) =
     let constructorNameProxy = SProxy :: SProxy name
         constructorName = reflectSymbol constructorNameProxy
-        paramsStringArray = generikShowArgs args
+        paramsStringArray = genericShowArgs args
     in case paramsStringArray of
       []       -> constructorName
       someArgs ->
@@ -583,17 +618,17 @@ instance generikShowConstructor
 # Helpers
 
 ```haskell
-generikShow :: forall a rep
+genericShow :: forall a rep
              . Generic a rep 
-            => GenerikShow rep 
+            => GenericShow rep 
             => a 
             -> String
-generikShow x = generikShow' (from x)
+genericShow x = genericShow' (from x)
 ```
 . . .
 ```haskell
 instance showExample :: Show Example where
-  show = generikShow
+  show = genericShow
 ```
 . . .
 ```haskell
@@ -608,4 +643,5 @@ instance showExample :: Show Example where
     - `NoArguments`
     - a single `Argument`
     - `Product` of `Argument`s
+- `NoContructors`
 
