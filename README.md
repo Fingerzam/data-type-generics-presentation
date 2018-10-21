@@ -1,11 +1,6 @@
-# Easy Markdown to Beamer with Pandoc
+# Data Type Generics: Type Safety Without Boilerplate
 
-Simple things nobody tells you how to do. See the slides: [./output.pdf](./output.pdf)
+Slides for a meetup talk <https://speakerdeck.com/fingerzam/data-type-generics-type-safety-without-boilerplate>
 
-Image preview:
+I used Justin Woo's pandoc template <https://github.com/justinwoo/easy-markdown-beamer-pandoc>
 
-![](./preview-0.png)
-![](./preview-1.png)
-![](./preview-2.png)
-![](./preview-3.png)
-![](./preview-4.png)
